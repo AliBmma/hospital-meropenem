@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Requests Form</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        /* Reset some default styles */
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background: #f9fafb;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        h1, h2 {
+            text-align: center;
+            color: #222;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+        h2 {
+            font-size: 1.5rem;
+            margin-top: 0;
+        }
+        .request {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 25px;
+            margin-bottom: 25px;
+            transition: box-shadow 0.3s ease;
+        }
+        .request:hover {
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+        .request h3 {
+            margin-top: 0;
+            color: #1a202c;
+            border-bottom: 3px solid #3182ce;
+            padding-bottom: 8px;
+            font-weight: 600;
+            font-size: 1.25rem;
+        }
+        label {
+            display: block;
+            margin-bottom: 12px;
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 0.95rem;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1.5px solid #cbd5e0;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        input:focus, select:focus {
+            border-color: #3182ce;
+            outline: none;
+            box-shadow: 0 0 5px rgba(49,130,206,0.5);
+        }
+        button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin: 8px 10px 8px 0;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+            font-weight: 600;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        button:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            opacity: 0.95;
+        }
+        .add-btn {
+            background-color: #38a169;
+            color: white;
+        }
+        .submit-btn {
+            background-color: #3182ce;
+            color: white;
+        }
+        .remove-btn {
+            background-color: #e53e3e;
+            color: white;
+        }
+        .export-btn {
+            background-color: #805ad5;
+            color: white;
+        }
+        .buttons {
+            text-align: center;
+            margin-top: 25px;
+        }
+        .buttons button {
+            margin: 8px 10px 8px 0;
+        }
+        @media (max-width: 600px) {
+            body {
+                padding: 15px 10px;
+            }
+            h1 {
+                font-size: 1.75rem;
+            }
+            .request {
+                padding: 20px;
+                margin-bottom: 20px;
+            }
+            .buttons {
+                display: flex;
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .buttons button {
+                width: 100%;
+                margin: 8px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h2 style="text-align: center; color: #2c3e50; font-size: 24px; margin-bottom: 10px;">المهندس تاج  راسي</h2>
+    <h1>Add Requests</h1>
+    <div id="requests-container">
+        <div class="request">
+            <h3>Request 1</h3>
+            <label>Location: 
+                <select name="location" required>
+                    <option value="">Select Location</option>
+                    <option value="صحة بغداد الكرخ">صحة بغداد الكرخ</option>
+                    <option value="Other">Other</option>
+                </select>
+            </label><br>
+            <label>Hospital: 
+                <select name="hospital" required>
+                    <option value="">Select Hospital</option>
+                    <option value="اليرموك التعليمي">اليرموك التعليمي</option>
+                    <option value="Other">Other</option>
+                </select>
+            </label><br>
+            <label>Name: <input type="text" name="name" required></label><br>
+            <label>Age: <input type="number" name="age" required></label><br>
+            <label>Diagnosis: <input type="text" name="diagnosis" required></label><br>
+            <label>Amount in grams: <input type="number" step="0.01" name="amount" id="amount1" oninput="calculateTotal(1)" required></label><br>
+            <label>Repeat: <input type="number" name="repeat" id="repeat1" oninput="calculateTotal(1)" required></label><br>
+            <label>Days: <input type="number" name="days" id="days1" oninput="calculateTotal(1)" required></label><br>
+            <label>Total Amount: <span id="total1">0</span> grams</label><br>
+            <button class="remove-btn" onclick="removeRequest(this)">Remove</button>
+        </div>
+    </div>
+    <div class="buttons">
+        <input type="file" id="importFile" accept=".xlsx,.xls" style="display: none;">
+        <button class="add-btn" onclick="addRequest()">Add Another Request</button>
+        <button class="export-btn" onclick="exportToExcel()">Export to Excel</button>
+        <button class="export-btn" onclick="document.getElementById('importFile').click()">Import from Excel</button>
+    </div>
+
+    <script>
+        let requestCount = 1;
+
+        function addRequest() {
+            requestCount++;
+            const container = document.getElementById('requests-container');
+            const newRequest = document.createElement('div');
+            newRequest.className = 'request';
+            newRequest.innerHTML = `
+                <h3>Request ${requestCount}</h3>
+                <label>Location: 
+                    <select name="location" required>
+                        <option value="">Select Location</option>
+                        <option value="صحة بغداد الكرخ">صحة بغداد الكرخ</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </label><br>
+                <label>Hospital: 
+                    <select name="hospital" required>
+                        <option value="">Select Hospital</option>
+                        <option value="اليرموك التعليمي">اليرموك التعليمي</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </label><br>
+                <label>Name: <input type="text" name="name" required></label><br>
+                <label>Age: <input type="number" name="age" required></label><br>
+                <label>Diagnosis: <input type="text" name="diagnosis" required></label><br>
+                <label>Amount in grams: <input type="number" step="0.01" name="amount" id="amount${requestCount}" oninput="calculateTotal(${requestCount})" required></label><br>
+                <label>Repeat: <input type="number" name="repeat" id="repeat${requestCount}" oninput="calculateTotal(${requestCount})" required></label><br>
+                <label>Days: <input type="number" name="days" id="days${requestCount}" oninput="calculateTotal(${requestCount})" required></label><br>
+                <label>Total Amount: <span id="total${requestCount}">0</span> grams</label><br>
+                <button class="remove-btn" onclick="removeRequest(this)">Remove</button>
+            `;
+            container.appendChild(newRequest);
+        }
+
+        function removeRequest(button) {
+            const request = button.parentElement;
+            request.remove();
+            requestCount--;
+            updateTitles();
+        }
+
+        function updateTitles() {
+            const requests = document.querySelectorAll('.request h3');
+            requests.forEach((h3, index) => {
+                h3.textContent = `Request ${index + 1}`;
+            });
+        }
+
+        function calculateTotal(num) {
+            const amount = parseFloat(document.getElementById(`amount${num}`).value) || 0;
+            const repeat = parseInt(document.getElementById(`repeat${num}`).value) || 0;
+            const days = parseInt(document.getElementById(`days${num}`).value) || 0;
+            const total = amount * repeat * days;
+            document.getElementById(`total${num}`).textContent = total.toFixed(2);
+        }
+
+        function exportToExcel() {
+            const requests = document.querySelectorAll('.request');
+            const data = [];
+            requests.forEach((request, index) => {
+                const location = request.querySelector('select[name="location"]').value;
+                const hospital = request.querySelector('select[name="hospital"]').value;
+                const name = request.querySelector('input[name="name"]').value;
+                const age = request.querySelector('input[name="age"]').value;
+                const diagnosis = request.querySelector('input[name="diagnosis"]').value;
+                const amount = request.querySelector('input[name="amount"]').value;
+                const repeat = request.querySelector('input[name="repeat"]').value;
+                const days = request.querySelector('input[name="days"]').value;
+                const total = request.querySelector('span[id^="total"]').textContent;
+
+                data.push({
+                    Location: location,
+                    Hospital: hospital,
+                    Name: name,
+                    Age: age,
+                    Diagnosis: diagnosis,
+                    Amount_in_grams: amount,
+                    Repeat: repeat,
+                    Days: days,
+                    Total_Amount: Math.round(parseFloat(total))
+                });
+            });
+
+            // Convert data to worksheet
+            const worksheet = XLSX.utils.json_to_sheet(data);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Requests");
+
+            // Export to Excel file
+            XLSX.writeFile(workbook, "requests.xlsx");
+        }
+
+        // Import from Excel
+        document.getElementById('importFile').addEventListener('change', handleFileSelect);
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                    // Clear existing requests except the first one
+                    const container = document.getElementById('requests-container');
+                    container.innerHTML = '';
+                    requestCount = 0;
+
+                    // Add requests from data
+                    jsonData.forEach((row, index) => {
+                        addRequestFromData(row);
+                    });
+                };
+                reader.readAsArrayBuffer(file);
+            }
+        }
+
+        function addRequestFromData(data) {
+            requestCount++;
+            const container = document.getElementById('requests-container');
+            const newRequest = document.createElement('div');
+            newRequest.className = 'request';
+            newRequest.innerHTML = `
+                <h3>Request ${requestCount}</h3>
+                <label>Location: 
+                    <select name="location" required>
+                        <option value="">Select Location</option>
+                        <option value="صحة بغداد الكرخ" ${data.Location === 'صحة بغداد الكرخ' ? 'selected' : ''}>صحة بغداد الكرخ</option>
+                        <option value="Other" ${data.Location === 'Other' ? 'selected' : ''}>Other</option>
+                    </select>
+                </label><br>
+                <label>Hospital: 
+                    <select name="hospital" required>
+                        <option value="">Select Hospital</option>
+                        <option value="اليرموك التعليمي" ${data.Hospital === 'اليرموك التعليمي' ? 'selected' : ''}>اليرموك التعليمي</option>
+                        <option value="Other" ${data.Hospital === 'Other' ? 'selected' : ''}>Other</option>
+                    </select>
+                </label><br>
+                <label>Name: <input type="text" name="name" value="${data.Name || ''}" required></label><br>
+                <label>Age: <input type="number" name="age" value="${data.Age || ''}" required></label><br>
+                <label>Diagnosis: <input type="text" name="diagnosis" value="${data.Diagnosis || ''}" required></label><br>
+                <label>Amount in grams: <input type="number" step="0.01" name="amount" id="amount${requestCount}" value="${data.Amount_in_grams || ''}" oninput="calculateTotal(${requestCount})" required></label><br>
+                <label>Repeat: <input type="number" name="repeat" id="repeat${requestCount}" value="${data.Repeat || ''}" oninput="calculateTotal(${requestCount})" required></label><br>
+                <label>Days: <input type="number" name="days" id="days${requestCount}" value="${data.Days || ''}" oninput="calculateTotal(${requestCount})" required></label><br>
+                <label>Total Amount: <span id="total${requestCount}">0</span> grams</label><br>
+                <button class="remove-btn" onclick="removeRequest(this)">Remove</button>
+            `;
+            container.appendChild(newRequest);
+            calculateTotal(requestCount);
+        }
+    </script>
+</body>
+</html>
